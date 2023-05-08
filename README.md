@@ -1,4 +1,6 @@
 # Jern
+![image](https://user-images.githubusercontent.com/1261392/236711666-709956ae-1cf5-44e0-8a79-2c20613b8899.png)
+
 Jern is a journaling tool that encrypts entries using AES-128 encryption with a random initialization vector (IV) and a key which is the filename of a .k file. To open an encrypted journal entry, you need Jern and the corresponding key file. However, it's important to note that this encryption method is not perfectly secure and is designed to deter someone who discovers the encrypted files.
 
 The .k filename serves as your encryption key, so it's important not to use a password that you use elsewhere. Additionally, once you finish writing your journal entry, it's recommended to delete/move/rename the key file.
