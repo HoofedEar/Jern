@@ -7,6 +7,7 @@ public sealed class MainWindow : Window
 {
     private readonly StatusBar _statusBar;
     private readonly StatusBar _invalidBar;
+
     private readonly TextView _textArea = new()
     {
         Width = Dim.Fill(),
@@ -14,7 +15,6 @@ public sealed class MainWindow : Window
         WordWrap = true
     };
 
-    
 
     public MainWindow()
     {
@@ -50,7 +50,7 @@ public sealed class MainWindow : Window
             var result = EncryptionHelpers.DecryptFile(FileHelpers.CurrentFile, FileHelpers.GetKey());
             _textArea.Text = result;
             _textArea.MoveEnd();
-            
+
             if (EncryptionHelpers.Error)
             {
                 _textArea.Enabled = false;
@@ -65,7 +65,7 @@ public sealed class MainWindow : Window
     private static void ShowAbout()
     {
         MessageBox.Query(50, 8,
-            "About", "Version 1.0\nCreated by HoofedEar\nhttps://hoofedear.itch.io/jern\nPowered by Terminal.Gui", "Cool");
+            "About", "Version 1.1\nCreated by HoofedEar\nhttps://hoofedear.itch.io/jern\nPowered by Terminal.Gui", "Cool");
     }
 
     private async Task SaveFileAsync()

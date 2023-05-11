@@ -1,4 +1,5 @@
 ﻿using Jern;
+using Jern.Dialogs;
 using Terminal.Gui;
 
 if (args.Length > 0)
@@ -9,6 +10,13 @@ if (args.Length > 0)
         return;
     }
     Application.Init();
+    
+    if (File.Exists("RENAME_ME.k"))
+    {
+        var task = Task.Run(() => Application.Run(new RenameKey()));
+        task.Wait();
+    }
+
     FileHelpers.BasePath = AppContext.BaseDirectory;
     FileHelpers.CurrentFile = args[0];
     Console.Title = $@"Jern - {Path.GetFileName(FileHelpers.CurrentFile)}";
@@ -17,6 +25,13 @@ if (args.Length > 0)
 else
 {
     Application.Init();
+    
+    if (File.Exists("RENAME_ME.k"))
+    {
+        var task = Task.Run(() => Application.Run(new RenameKey()));
+        task.Wait();
+    }
+
     FileHelpers.BasePath = AppContext.BaseDirectory;
     FileHelpers.CurrentFile = FileHelpers.BasePath + "entries/" + DateTime.Now.ToShortDateString().Replace("/", "-") + ".se";
     Console.Title = $@"Jern - {Path.GetFileName(FileHelpers.CurrentFile)}";
