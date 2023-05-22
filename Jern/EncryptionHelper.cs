@@ -4,9 +4,9 @@ using NStack;
 
 namespace Jern;
 
-public static class EncryptionHelpers
+public static class EncryptionHelper
 {
-    public static bool Error { get; private set; }
+    public static bool Error;
 
     /// <summary>
     /// Encrypts the content of the TextView and saves it to the current file
@@ -17,9 +17,9 @@ public static class EncryptionHelpers
     public static void EncryptFile(string inputString, string outputFile, string key)
     {
         var bytes = Encoding.Unicode.GetBytes(inputString);
-        using var crypt = Aes.Create();
+        SymmetricAlgorithm crypt = Aes.Create();
         crypt.BlockSize = 128;
-        crypt.Key = GetSecureKey(key);
+        crypt.Key = MD5.HashData(Encoding.Unicode.GetBytes(key));
         crypt.GenerateIV();
 
         using var memoryStream = new MemoryStream();
@@ -78,10 +78,5 @@ public static class EncryptionHelpers
             Error = true;
             return ex.Message + "\n(Alt+Q to quit)";
         }
-    }
-    
-    private static byte[] GetSecureKey(string key)
-    {
-        return SHA256.HashData(Encoding.Unicode.GetBytes(key));
     }
 }
