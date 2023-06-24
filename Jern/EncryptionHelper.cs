@@ -67,6 +67,8 @@ public static class EncryptionHelper
         {
             Error = true;
             return "Invalid key. (Alt+Q to quit)";
+            // TODO Allow for making a new file with an appended file name
+            // i.e 6-24-2023-1.se
         }
         catch (FormatException)
         {
