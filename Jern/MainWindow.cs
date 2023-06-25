@@ -1,5 +1,7 @@
 using System.Text;
 using Terminal.Gui;
+using DiffMatchPatch;
+using NStack;
 
 namespace Jern;
 
@@ -11,7 +13,6 @@ public sealed class MainWindow : Window
     };
 
     private readonly StatusBar _statusBar;
-    private readonly StatusBar _invalidBar;
 
     private readonly TextView _textArea = new()
     {
@@ -20,6 +21,8 @@ public sealed class MainWindow : Window
         WordWrap = true
     };
 
+    private readonly diff_match_patch _dmp = new();
+    private ustring _savedText = string.Empty;
 
     public MainWindow()
     {
@@ -30,18 +33,10 @@ public sealed class MainWindow : Window
         _statusBar = new StatusBar(new StatusItem[]
         {
             new(Key.AltMask | Key.S, "Save (Alt+S)", SaveFile),
-            new(Key.AltMask | Key.Q, "Quit (Alt+Q)", () => Application.RequestStop()),
+            new(Key.AltMask | Key.Q, "Quit (Alt+Q)", SaveBeforeQuit),
             new(Key.AltMask | Key.I, "About (Alt+I)", ShowAbout),
-            new(Key.AltMask | Key.PageUp, "Previous (Alt+PgUp)", LoadPreviousEntry),
-            new(Key.AltMask | Key.PageDown, "Next (Alt+PgDn)", LoadNextEntry)
-        });
-
-        _invalidBar = new StatusBar(new StatusItem[]
-        {
-            new(Key.AltMask | Key.Q, "Quit (Alt+Q)", () => Application.RequestStop()),
-            new(Key.AltMask | Key.I, "About (Alt+I)", ShowAbout),
-            new(Key.AltMask | Key.PageUp, "Previous (Alt+PgUp)", LoadPreviousEntry),
-            new(Key.AltMask | Key.PageDown, "Next (Alt+PgDn)", LoadNextEntry)
+            new(Key.AltMask | Key.PageUp, "Previous (Alt+PgUp)", () => {LoadEntry(false);}),
+            new(Key.AltMask | Key.PageDown, "Next (Alt+PgDn)", () => {LoadEntry(true);})
         });
 
 
@@ -49,77 +44,116 @@ public sealed class MainWindow : Window
         Add(_textArea);
     }
 
-    private void LoadNextEntry()
+    private bool CheckForChanges()
     {
-        var index = FileHelpers.EntryIndex - 1;
-        var entry = FileHelpers.GetEntry(index);
-        if (entry == "") return;
+        var saved = _savedText.ToString() ?? throw new Exception("Shit's broken bruv");
+        var current = _textArea.Text.ToString() ?? throw new Exception("Shit's broken bruv");
+        var diffs = _dmp.diff_main(saved, current);
+    
+        // Clean up the diff
+        _dmp.diff_cleanupSemantic(diffs);
 
-        var prevItem = _statusBar.Items.FirstOrDefault(i => i.Title == "- -");
-        if (prevItem != null)
-        {
-            prevItem.Title = "Previous (Alt+PgUp)";
-        }
-
-        FileHelpers.EntryIndex = index;
-        FileHelpers.CurrentFile = entry;
-        Title = Path.GetFileName(FileHelpers.CurrentFile);
-        var result = EncryptionHelper.DecryptFile(FileHelpers.CurrentFile, FileHelpers.GetKey());
-        _textArea.Text = "";
-        _textArea.Text = result;
-        _textArea.MoveEnd();
-
-        // Check ahead
-        var ahead = FileHelpers.EntryIndex - 1;
-        var aheadEntry = FileHelpers.GetEntry(ahead);
-        if (aheadEntry == "")
-        {
-            var nextItem = _statusBar.Items.FirstOrDefault(i => i.Title == "Next (Alt+PgDn)");
-            if (nextItem != null)
-                nextItem.Title = "- -";
-        }
-
-        if (!EncryptionHelper.Error) return;
-        _textArea.Enabled = false;
-        Remove(_statusBar);
-        Add(_invalidBar);
+        // If there are any diffs, there are unsaved changes
+        return diffs.Exists(diff => diff.operation != Operation.EQUAL);
     }
 
-    private void LoadPreviousEntry()
+    private async void SaveBeforeQuit()
     {
-        var index = FileHelpers.EntryIndex + 1;
+        if (EncryptionHelper.Error)
+        {
+            Application.RequestStop();
+            return;
+        }
+
+        // If there are any diffs, there are unsaved changes
+        if (CheckForChanges())
+        {
+            var prompt = MessageBox.Query(50, 8,
+                "Save?", "Would you like to save this file before quitting?",
+                "Yea", "Nah", "Cancel");
+
+            switch (prompt)
+            {
+                case 0:
+                    await SaveFileAsync();
+                    Application.RequestStop();
+                    break;
+                case 1:
+                    Application.RequestStop();
+                    break;
+                case 2:
+                    return;
+            }
+        }
+        else
+        {
+            Application.RequestStop();
+        }
+    }
+
+    private void ResetTextArea()
+    {
+        _textArea.Enabled = true;
+        _textArea.Text = "";
+        _textArea.SetFocus();
+    }
+    
+    private async void LoadEntry(bool loadNext)
+    {
+        if (CheckForChanges())
+        {
+            var prompt = MessageBox.Query(50, 8,
+                "Save?", "Would you like to save your changes before changing entries?",
+                "Yea", "Nah", "Cancel");
+
+            switch (prompt)
+            {
+                case 0:
+                    await SaveFileAsync();
+                    break;
+                case 1:
+                    break;
+                case 2:
+                    return;
+            }
+        }
+        
+        var direction = loadNext ? -1 : 1; // -1 for next, 1 for previous
+        var index = FileHelpers.EntryIndex + direction;
         var entry = FileHelpers.GetEntry(index);
         if (entry == "") return;
 
-        var nextItem = _statusBar.Items.FirstOrDefault(i => i.Title == "- -");
-        if (nextItem != null)
+        var currentItemTitle = loadNext ? "Previous (Alt+PgUp)" : "Next (Alt+PgDn)";
+        var nextItemTitle = loadNext ? "Next (Alt+PgDn)" : "Previous (Alt+PgUp)";
+        const string defaultItemTitle = "- -";
+    
+        var currentItem = _statusBar.Items.FirstOrDefault(i => i.Title == defaultItemTitle);
+        if (currentItem != null)
         {
-            nextItem.Title = "Next (Alt+PgDn)";
+            currentItem.Title = currentItemTitle;
         }
-
 
         FileHelpers.EntryIndex = index;
         FileHelpers.CurrentFile = entry;
         Title = Path.GetFileName(FileHelpers.CurrentFile);
         var result = EncryptionHelper.DecryptFile(FileHelpers.CurrentFile, FileHelpers.GetKey());
-        _textArea.Text = "";
+        ResetTextArea();
         _textArea.Text = result;
+        _savedText = _textArea.Text;
         _textArea.MoveEnd();
 
         // Check ahead
-        var ahead = FileHelpers.EntryIndex + 1;
+        var ahead = FileHelpers.EntryIndex + direction;
         var aheadEntry = FileHelpers.GetEntry(ahead);
         if (aheadEntry == "")
         {
-            var prevItem = _statusBar.Items.FirstOrDefault(i => i.Title == "Previous (Alt+PgUp)");
-            if (prevItem != null)
-                prevItem.Title = "- -";
+            var nextItem = _statusBar.Items.FirstOrDefault(i => i.Title == nextItemTitle);
+            if (nextItem != null)
+                nextItem.Title = defaultItemTitle;
         }
 
         if (!EncryptionHelper.Error) return;
         _textArea.Enabled = false;
-        Remove(_statusBar);
-        Add(_invalidBar);
     }
 
     public override void OnLoaded()
@@ -128,14 +162,14 @@ public sealed class MainWindow : Window
         if (File.Exists(FileHelpers.CurrentFile))
         {
             var result = EncryptionHelper.DecryptFile(FileHelpers.CurrentFile, FileHelpers.GetKey());
+            ResetTextArea();
             _textArea.Text = result;
+            _savedText = _textArea.Text;
             _textArea.MoveEnd();
 
             if (EncryptionHelper.Error)
             {
                 _textArea.Enabled = false;
-                Remove(_statusBar);
-                Add(_invalidBar);
             }
         }
 
@@ -168,11 +202,13 @@ public sealed class MainWindow : Window
 
     private async Task SaveFileAsync()
     {
+        if (EncryptionHelper.Error) return;
         var actual = new StringBuilder(Encoding.UTF8.GetString(_textArea.Text.ToByteArray()));
         EncryptionHelper.EncryptFile(actual.ToString(), FileHelpers.CurrentFile, FileHelpers.GetKey());
         var saveItem = _statusBar.Items.First(i => i.Title == "Save (Alt+S)");
         saveItem.Title = "File saved!";
         _statusBar.Enabled = false;
+        _savedText = _textArea.Text;
         await Task.Delay(1000);
         saveItem.Title = "Save (Alt+S)";
         _statusBar.Enabled = true;

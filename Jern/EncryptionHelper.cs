@@ -45,6 +45,7 @@ public static class EncryptionHelper
         // Make sure that the entries directory exists
         try
         {
+            Error = false;
             var combinedBytes = Convert.FromBase64String(File.ReadAllText(inputFile));
             var iv = combinedBytes.Take(16).ToArray();
             var cipherText = combinedBytes.Skip(16).ToArray();
