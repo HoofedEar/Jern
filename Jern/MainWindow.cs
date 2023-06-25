@@ -1,6 +1,7 @@
 using System.Text;
 using Terminal.Gui;
 using DiffMatchPatch;
+using Jern.Dialogs;
 using NStack;
 
 namespace Jern;
@@ -100,6 +101,11 @@ public sealed class MainWindow : Window
     
     private async void LoadEntry(bool loadNext)
     {
+        var direction = loadNext ? -1 : 1; // -1 for next, 1 for previous
+        var index = FileHelpers.EntryIndex + direction;
+        var entry = FileHelpers.GetEntry(index);
+        if (entry == "") return;
+        
         if (CheckForChanges())
         {
             var prompt = MessageBox.Query(50, 8,
@@ -118,11 +124,6 @@ public sealed class MainWindow : Window
             }
         }
         
-        var direction = loadNext ? -1 : 1; // -1 for next, 1 for previous
-        var index = FileHelpers.EntryIndex + direction;
-        var entry = FileHelpers.GetEntry(index);
-        if (entry == "") return;
-
         var currentItemTitle = loadNext ? "Previous (Alt+PgUp)" : "Next (Alt+PgDn)";
         var nextItemTitle = loadNext ? "Next (Alt+PgDn)" : "Previous (Alt+PgUp)";
         const string defaultItemTitle = "- -";
@@ -158,6 +159,11 @@ public sealed class MainWindow : Window
 
     public override void OnLoaded()
     {
+        if (File.Exists("RENAME_ME.k"))
+        {
+            Application.Run<RenameKey>();
+        }
+        
         Title = Path.GetFileName(FileHelpers.CurrentFile);
         if (File.Exists(FileHelpers.CurrentFile))
         {
@@ -193,7 +199,7 @@ public sealed class MainWindow : Window
         base.OnLoaded();
     }
 
-    private static void ShowAbout()
+    private void ShowAbout()
     {
         var _ = MessageBox.Query(50, 8,
             "About", "Version 1.1\nCreated by HoofedEar\nhttps://hoofedear.itch.io/jern\nPowered by Terminal.Gui",

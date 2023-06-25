@@ -75,8 +75,7 @@ public sealed class RenameKey : Window
                 Add(new Label("EXCEPTION: INVALID PERMISSIONS"));
             }
             
-            Dispose();
-            Application.Run<MainWindow>();
+            Application.RequestStop();
         };
         Add(button);
         
