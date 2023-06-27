@@ -3,6 +3,7 @@ using Terminal.Gui;
 
 
 FileHelpers.BasePath = AppContext.BaseDirectory;
+Directory.CreateDirectory("entries");
 
 if (args.Length > 0)
 {
