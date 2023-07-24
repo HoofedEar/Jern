@@ -4,7 +4,7 @@ using NStack;
 
 namespace Jern;
 
-public static class EncryptionHelpers
+public static class EncryptionHelper
 {
     public static bool Error;
 
@@ -45,6 +45,7 @@ public static class EncryptionHelpers
         // Make sure that the entries directory exists
         try
         {
+            Error = false;
             var combinedBytes = Convert.FromBase64String(File.ReadAllText(inputFile));
             var iv = combinedBytes.Take(16).ToArray();
             var cipherText = combinedBytes.Skip(16).ToArray();
@@ -67,6 +68,8 @@ public static class EncryptionHelpers
         {
             Error = true;
             return "Invalid key. (Alt+Q to quit)";
+            // TODO Allow for making a new file with an appended file name
+            // i.e 6-24-2023-1.se
         }
         catch (FormatException)
         {
