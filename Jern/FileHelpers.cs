@@ -19,7 +19,7 @@ public static class FileHelpers
     }
 
     /// <summary>
-    /// Gets all of the current entries in the "entries" directory
+    /// Gets all the current entries in the "entries" directory
     /// </summary>
     public static void PopulateEntries()
     {

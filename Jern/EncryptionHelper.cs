@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using NStack;
 
 namespace Jern;
 
@@ -39,7 +38,7 @@ public static class EncryptionHelper
     /// </summary>
     /// <param name="inputFile">Current file</param>
     /// <param name="key">Key for the file</param>
-    public static ustring DecryptFile(string inputFile, string key)
+    public static string DecryptFile(string inputFile, string key)
     {
         // Decrypt
         // Make sure that the entries directory exists
@@ -62,24 +61,22 @@ public static class EncryptionHelper
             }
 
             var decryptedBytes = memoryStream.ToArray();
-            return ustring.Make(Encoding.Unicode.GetString(decryptedBytes));
+            return Encoding.Unicode.GetString(decryptedBytes);
         }
         catch (CryptographicException)
         {
             Error = true;
-            return "Invalid key. (Alt+Q to quit)";
-            // TODO Allow for making a new file with an appended file name
-            // i.e 6-24-2023-1.se
+            return "Invalid key. (Esc to quit)";
         }
         catch (FormatException)
         {
             Error = true;
-            return "Invalid file. (Alt+Q to quit)";
+            return "Invalid file. (Esc to quit)";
         }
         catch (IOException ex)
         {
             Error = true;
-            return ex.Message + "\n(Alt+Q to quit)";
+            return ex.Message + "\n(Esc to quit)";
         }
     }
 }
