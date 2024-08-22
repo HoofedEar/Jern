@@ -178,7 +178,7 @@ public sealed class MainWindow : Window
 
     public override void OnLoaded()
     {
-        if (File.Exists("RENAME_ME.k"))
+        if (File.Exists( FileHelpers.BasePath + "RENAME_ME.k"))
         {
             Application.Run<RenameKey>();
         }

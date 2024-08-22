@@ -38,7 +38,7 @@ public static class FileHelpers
             return "";
         }
 
-        var entry = "entries/" + Entries[index];
+        var entry = BasePath + "entries/" + Entries[index];
         return entry;
     }
 }
