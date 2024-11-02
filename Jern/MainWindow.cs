@@ -36,7 +36,7 @@ public sealed class MainWindow : Window
 
         _statusBar = new StatusBar(new Shortcut[]
         {
-            new(Key.S.WithCtrl, "Save", SaveFile),
+            new(Key.S.WithAlt, "Save", SaveFile),
             new(Key.Esc, "Quit", SaveBeforeQuit),
             new(null, "About", ShowAbout),
             new(null, "Prev", () => { LoadEntry(true); }),
