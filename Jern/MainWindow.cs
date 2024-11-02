@@ -236,7 +236,7 @@ public sealed class MainWindow : Window
     private static void ShowAbout()
     {
         _ = MessageBox.Query(50, 8,
-            "About", $"{VersionString}\nCreated by HoofedEar\nhttps://hoofedear.itch.io/jern\nPowered by Terminal.Gui",
+            "About", $"{VersionString}\nCreated by HoofedEar\nhttps://github.com/HoofedEar/Jern\nPowered by Terminal.Gui",
             "Cool");
     }
 
