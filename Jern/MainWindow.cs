@@ -2,55 +2,65 @@ using System.Text;
 using Terminal.Gui;
 using DiffMatchPatch;
 using Jern.Dialogs;
-using NStack;
 
 namespace Jern;
 
 public sealed class MainWindow : Window
 {
+    private const string EmptyItemTitle = "----";
+    private const string VersionString = "Version 1.2";
+    private bool _isSaving;
+
     private static readonly ColorScheme MainScheme = new()
     {
-        Normal = Application.Driver.MakeAttribute(Color.White, Color.Black)
+        Normal = Application.Driver!.MakeColor(Color.White, Color.Black)
     };
 
     private readonly StatusBar _statusBar;
 
     private readonly TextView _textArea = new()
     {
-        Width = Dim.Fill(),
-        Height = Dim.Fill() - 1,
-        WordWrap = true
+        Width = Dim.Fill()! - 1,
+        Height = Dim.Fill()! - 1,
+        WordWrap = true,
+        X = 1,
     };
 
     private readonly diff_match_patch _dmp = new();
-    private ustring _savedText = string.Empty;
+    private string _savedText = string.Empty;
 
     public MainWindow()
     {
         ColorScheme = MainScheme;
 
-        async void SaveFile() => await SaveFileAsync();
 
-        _statusBar = new StatusBar(new StatusItem[]
+        _statusBar = new StatusBar(new Shortcut[]
         {
-            new(Key.AltMask | Key.S, "Save (Alt+S)", SaveFile),
-            new(Key.AltMask | Key.Q, "Quit (Alt+Q)", SaveBeforeQuit),
-            new(Key.AltMask | Key.I, "About (Alt+I)", ShowAbout),
-            new(Key.AltMask | Key.PageUp, "Previous (Alt+PgUp)", () => {LoadEntry(false);}),
-            new(Key.AltMask | Key.PageDown, "Next (Alt+PgDn)", () => {LoadEntry(true);})
+            new(Key.S.WithAlt, "Save", SaveFile),
+            new(Key.Esc, "Quit", SaveBeforeQuit),
+            new(null, "About", ShowAbout),
+            new(null, "Prev", () => { LoadEntry(true); }),
+            new(null, "Next", () => { LoadEntry(false); })
         });
 
 
         Add(_statusBar);
         Add(_textArea);
+
+        return;
+
+        async void SaveFile() => await SaveFileAsync();
     }
 
+    /// <summary>
+    /// Performs a check to see if there are any changes in the text area
+    /// </summary>
     private bool CheckForChanges()
     {
-        var saved = _savedText.ToString() ?? throw new Exception("Shit's broken bruv");
-        var current = _textArea.Text.ToString() ?? throw new Exception("Shit's broken bruv");
+        var saved = _savedText;
+        var current = _textArea.Text;
         var diffs = _dmp.diff_main(saved, current);
-    
+
         // Clean up the diff
         _dmp.diff_cleanupSemantic(diffs);
 
@@ -58,6 +68,9 @@ public sealed class MainWindow : Window
         return diffs.Exists(diff => diff.operation != Operation.EQUAL);
     }
 
+    /// <summary>
+    /// Prompts to save the current file before quitting
+    /// </summary>
     private async void SaveBeforeQuit()
     {
         if (EncryptionHelper.Error)
@@ -92,20 +105,27 @@ public sealed class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Resets the text area to a blank state
+    /// </summary>
     private void ResetTextArea()
     {
         _textArea.Enabled = true;
         _textArea.Text = "";
         _textArea.SetFocus();
     }
-    
+
+    /// <summary>
+    /// Loads an entry from the entries list
+    /// </summary>
+    /// <param name="loadNext">True - Next recent; False - Previous recent</param>
     private async void LoadEntry(bool loadNext)
     {
         var direction = loadNext ? -1 : 1; // -1 for next, 1 for previous
         var index = FileHelpers.EntryIndex + direction;
         var entry = FileHelpers.GetEntry(index);
         if (entry == "") return;
-        
+
         if (CheckForChanges())
         {
             var prompt = MessageBox.Query(50, 8,
@@ -123,12 +143,11 @@ public sealed class MainWindow : Window
                     return;
             }
         }
-        
-        var currentItemTitle = loadNext ? "Previous (Alt+PgUp)" : "Next (Alt+PgDn)";
-        var nextItemTitle = loadNext ? "Next (Alt+PgDn)" : "Previous (Alt+PgUp)";
-        const string defaultItemTitle = "- -";
-    
-        var currentItem = _statusBar.Items.FirstOrDefault(i => i.Title == defaultItemTitle);
+
+        var currentItemTitle = loadNext ? "Next" : "Prev";
+        var nextItemTitle = loadNext ? "Prev" : "Next";
+
+        var currentItem = _statusBar.Subviews.FirstOrDefault(i => i.Title == EmptyItemTitle);
         if (currentItem != null)
         {
             currentItem.Title = currentItemTitle;
@@ -148,9 +167,9 @@ public sealed class MainWindow : Window
         var aheadEntry = FileHelpers.GetEntry(ahead);
         if (aheadEntry == "")
         {
-            var nextItem = _statusBar.Items.FirstOrDefault(i => i.Title == nextItemTitle);
+            var nextItem = _statusBar.Subviews.FirstOrDefault(i => i.Title == nextItemTitle);
             if (nextItem != null)
-                nextItem.Title = defaultItemTitle;
+                nextItem.Title = EmptyItemTitle;
         }
 
         if (!EncryptionHelper.Error) return;
@@ -159,11 +178,11 @@ public sealed class MainWindow : Window
 
     public override void OnLoaded()
     {
-        if (File.Exists("RENAME_ME.k"))
+        if (File.Exists( FileHelpers.BasePath + "RENAME_ME.k"))
         {
             Application.Run<RenameKey>();
         }
-        
+
         Title = Path.GetFileName(FileHelpers.CurrentFile);
         if (File.Exists(FileHelpers.CurrentFile))
         {
@@ -178,45 +197,82 @@ public sealed class MainWindow : Window
                 _textArea.Enabled = false;
             }
         }
+        else
+        {
+            SilentSave();
+        }
 
         // Check if previous/next buttons are active
-        var ahead = FileHelpers.EntryIndex - 1;
-        var aheadEntry = FileHelpers.GetEntry(ahead);
-        if (aheadEntry == "")
-        {
-            var nextItem = _statusBar.Items.First(i => i.Title == "Next (Alt+PgDn)");
-            nextItem.Title = "- -";
-        }
-
-        var before = FileHelpers.EntryIndex + 1;
-        var beforeEntry = FileHelpers.GetEntry(before);
-        if (beforeEntry == "")
-        {
-            var prevItem = _statusBar.Items.First(i => i.Title == "Previous (Alt+PgUp)");
-            prevItem.Title = "- -";
-        }
+        EntriesCheck();
 
         base.OnLoaded();
     }
 
-    private void ShowAbout()
+    /// <summary>
+    /// Checks to see if any entries are available before or after the current entry
+    /// </summary>
+    private void EntriesCheck()
     {
-        var _ = MessageBox.Query(50, 8,
-            "About", "Version 1.1\nCreated by HoofedEar\nhttps://hoofedear.itch.io/jern\nPowered by Terminal.Gui",
+        var ahead = FileHelpers.EntryIndex + 1;
+        var aheadEntry = FileHelpers.GetEntry(ahead);
+        if (aheadEntry == "")
+        {
+            var nextItem = _statusBar.Subviews.First(i => i.Title == "Next");
+            nextItem.Title = EmptyItemTitle;
+        }
+
+        var before = FileHelpers.EntryIndex - 1;
+        var beforeEntry = FileHelpers.GetEntry(before);
+        if (beforeEntry == "")
+        {
+            var prevItem = _statusBar.Subviews.First(i => i.Title == "Prev");
+            prevItem.Title = EmptyItemTitle;
+        }
+    }
+
+    /// <summary>
+    /// Shows the "About" dialog
+    /// </summary>
+    private static void ShowAbout()
+    {
+        _ = MessageBox.Query(50, 8,
+            "About", $"{VersionString}\nCreated by HoofedEar\nhttps://github.com/HoofedEar/Jern\nPowered by Terminal.Gui",
             "Cool");
     }
 
+    /// <summary>
+    /// Saves the current file to disk
+    /// </summary>
     private async Task SaveFileAsync()
     {
         if (EncryptionHelper.Error) return;
-        var actual = new StringBuilder(Encoding.UTF8.GetString(_textArea.Text.ToByteArray()));
+        if (_isSaving) return;
+        _isSaving = true;
+        var actual = new StringBuilder(_textArea.Text);
         EncryptionHelper.EncryptFile(actual.ToString(), FileHelpers.CurrentFile, FileHelpers.GetKey());
-        var saveItem = _statusBar.Items.First(i => i.Title == "Save (Alt+S)");
+        var saveItem = _statusBar.Subviews.First(i => i.Title == "Save");
         saveItem.Title = "File saved!";
         _statusBar.Enabled = false;
         _savedText = _textArea.Text;
         await Task.Delay(1000);
-        saveItem.Title = "Save (Alt+S)";
+        saveItem.Title = "Save";
         _statusBar.Enabled = true;
+        _isSaving = false;
+    }
+
+    /// <summary>
+    /// When loading Jern without a file, it will create one based on the date. This saves that file and reloads the
+    /// entries list to reflect the new file.
+    /// </summary>
+    private void SilentSave()
+    {
+        if (EncryptionHelper.Error) return;
+        if (_isSaving) return;
+        _isSaving = true;
+        var actual = new StringBuilder(_textArea.Text);
+        EncryptionHelper.EncryptFile(actual.ToString(), FileHelpers.CurrentFile, FileHelpers.GetKey());
+        _savedText = _textArea.Text;
+        _isSaving = false;
+        FileHelpers.PopulateEntries();
     }
 }
