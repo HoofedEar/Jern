@@ -1,12 +1,92 @@
 # Jern
-![image](https://user-images.githubusercontent.com/1261392/236711666-709956ae-1cf5-44e0-8a79-2c20613b8899.png)
+![image](https://github.com/user-attachments/assets/46bb4046-4b5b-4757-b657-b9f2007fd620)
 
-Jern is a journaling tool that encrypts entries using AES-128 encryption with a random initialization vector (IV) and a key which is the filename of a .k file. To open an encrypted journal entry, you need Jern and the corresponding key file. However, it's important to note that this encryption method is not perfectly secure and is designed to deter someone who discovers the encrypted files.
 
-The .k filename serves as your encryption key, so it's important not to use a password that you use elsewhere. Additionally, once you finish writing your journal entry, it's recommended to delete/move/rename the key file.
-
-To use Jern, you should create a folder where Jern will be stored, and a subfolder called "entries" where all your journal entries will be saved as .se files. When you open Jern without specifying a filename, it will use the current date and save the entry in an "entries" folder located in the same directory as Jern. Jern will only open .se files, and you can open previous entries through the Terminal by typing `jern entries/previous-entry.se` in the directory where Jern is located.
-
-When it comes to typing and editing, keep in mind that Jern runs in the terminal, so common keyboard shortcuts for cutting and pasting may not work. You can select text using your mouse and use right-click to bring up a menu with various functions, including keyboard shortcuts. To safely exit Jern, press Alt+Q.
+Jern is a terminal-based journaling tool that provides basic encryption for your personal entries. It uses AES-128 encryption with a random initialization vector (IV) to protect your journal entries from casual discovery.
 
 Powered by [Terminal.Gui](https://github.com/gui-cs/Terminal.Gui)
+
+## Security Notice
+
+The encryption implementation in Jern is designed for basic privacy and should not be considered cryptographically secure. It provides a deterrent against casual snooping but should not be relied upon for highly sensitive information.
+
+## Features
+
+- Terminal-based interface for distraction-free writing
+- Basic encryption using AES-128
+- Automatic date-based file naming
+- Simple key file management
+- Minimal setup required
+
+## Installation
+
+1. Create a directory for Jern
+2. Create a subdirectory called `entries` within your Jern directory
+3. Place the Jern executable in the main directory
+
+Your directory structure should look like this:
+
+```
+jern/
+├── jern (executable)
+└── entries/
+```
+
+## Usage
+
+### Creating a New Entry
+
+To create a new entry with today's date:
+```bash
+./jern
+```
+
+To create an entry with a specific name:
+```bash
+./jern entries/my-entry.se
+```
+
+### Opening Existing Entries
+
+To open a previous entry:
+```bash
+./jern entries/previous-entry.se
+```
+
+### Key File Management
+
+- Your encryption key is the filename of a `.k` file
+- Use unique keys that are not passwords you use elsewhere
+- For additional security, delete, move, or rename the key file after finishing your entry
+
+### Navigation and Editing
+
+- Use mouse for text selction
+- Right-click to access the context menu with additional functions
+- Navigate between entries using the buttons on the bottom
+- Please note: *Common terminal keyboard shortcuts may not work as expected*
+
+### Exiting
+
+Press `Esc` to safely exit Jern. It will prompt you to save any unsaved changes before exiting.
+
+## File Types
+
+- `.se`: Encrypted journal entries (Secure Entry)
+- `.k`: Key files used for encryption
+
+## Best Practices
+
+1. Keep backups of your `entries` directory
+2. Never share or reuse key file names that you use for other purposes
+3. Consider moving completed entries and their key files to secure storage
+
+## Contributing
+
+Feel free to submit issues and pull requests! I'm open to new ideas or features. But please keep in mind, I'd like to keep Jern portable.
+
+## License
+
+[GPL-3.0](https://github.com/HoofedEar/Jern?tab=GPL-3.0-1-ov-file)
+
+
