@@ -20,15 +20,14 @@ The encryption implementation in Jern is designed for basic privacy and should n
 
 ## Installation
 
-1. Create a directory for Jern
-2. Create a subdirectory called `entries` within your Jern directory
-3. Place the Jern executable in the main directory
-
-Your directory structure should look like this:
+Simply place Jern in a folder or the root of a USB drive, and run the application.
+It will create an entries folder automatically, where auto-generated entries (ones based on the current date) will appear.
+Your directory structure will look like this after first run:
 
 ```
-jern/
+/
 ├── jern (executable)
+├── key file (.k)
 └── entries/
 ```
 
