@@ -42,6 +42,10 @@ public sealed class MainWindow : Window
             new(null, "Prev", () => { LoadEntry(true); }),
             new(null, "Next", () => { LoadEntry(false); })
         });
+        
+        // Set Prev and Next button Data
+        _statusBar.Subviews.First(i => i.Title == "Prev").Data = "Prev";
+        _statusBar.Subviews.First(i => i.Title == "Next").Data = "Next";
 
 
         Add(_statusBar);
@@ -122,9 +126,19 @@ public sealed class MainWindow : Window
     private async void LoadEntry(bool loadNext)
     {
         var direction = loadNext ? -1 : 1; // -1 for next, 1 for previous
+        
+        // Determine which button was clicked from the StatusBar
+        var clicked = _statusBar.Subviews.FirstOrDefault(i => ReferenceEquals(i.Data, loadNext ? "Prev" : "Next"));
+        if (clicked == null || clicked.Title == EmptyItemTitle) return;
+        
         var index = FileHelpers.EntryIndex + direction;
+        if (index < 0) index = 0;
         var entry = FileHelpers.GetEntry(index);
-        if (entry == "") return;
+        if (entry == "")
+        {
+            ResetTextArea();
+            return;
+        };
 
         if (CheckForChanges())
         {
@@ -144,6 +158,16 @@ public sealed class MainWindow : Window
             }
         }
 
+        ProcessNavigation(loadNext, direction, index, entry);
+        
+        Console.Title = $"Jern - {Path.GetFileName(FileHelpers.CurrentFile)}";
+
+        if (!EncryptionHelper.Error) return;
+        _textArea.Enabled = false;
+    }
+    
+    private void ProcessNavigation(bool loadNext, int direction, int index, string entry)
+    {
         var currentItemTitle = loadNext ? "Next" : "Prev";
         var nextItemTitle = loadNext ? "Prev" : "Next";
 
@@ -163,17 +187,26 @@ public sealed class MainWindow : Window
         _textArea.MoveEnd();
 
         // Check ahead
-        var ahead = FileHelpers.EntryIndex + direction;
-        var aheadEntry = FileHelpers.GetEntry(ahead);
-        if (aheadEntry == "")
+        var aheadEntry = FileHelpers.GetEntry(FileHelpers.EntryIndex + direction);
+        if (string.IsNullOrEmpty(aheadEntry))
         {
             var nextItem = _statusBar.Subviews.FirstOrDefault(i => i.Title == nextItemTitle);
             if (nextItem != null)
+            {
                 nextItem.Title = EmptyItemTitle;
+            }
         }
 
-        if (!EncryptionHelper.Error) return;
-        _textArea.Enabled = false;
+        // Check behind
+        var behindEntry = FileHelpers.GetEntry(FileHelpers.EntryIndex - direction);
+        if (string.IsNullOrEmpty(behindEntry))
+        {
+            var prevItem = _statusBar.Subviews.FirstOrDefault(i => i.Title == currentItemTitle);
+            if (prevItem != null)
+            {
+                prevItem.Title = EmptyItemTitle;
+            }
+        }
     }
 
     public override void OnLoaded()
